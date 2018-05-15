@@ -24,5 +24,16 @@ ext_modules = [
 
 setup(
     name="segmentation",
+    packages=["segmentation"],
+    version='0.1.2',
+    description='Mixture model segmentation',
+    author='Matej Usaj',
+    author_email='m.usaj@utoronto.ca',
+    url='https://github.com/usajusaj/segmentation',
+    download_url='https://github.com/usajusaj/segmentation/archive/master.zip',
+    keywords=['mixture', 'model', 'segmentation'],
+    classifiers=[],
     cmdclass={"build_ext": build_ext},
-    ext_modules=ext_modules)
+    ext_modules=ext_modules,
+    install_requires=['cython', 'scikit-image', 'numpy'],
+)

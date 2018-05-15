@@ -13,7 +13,7 @@ def read_channel(path, channel='red'):
     """
       Return ndarray of frames x shape for requested channel
       .flex files contain one frame per channel
-      .tiff files contain four frams per channel
+      .tiff files contain four frames per channel
     """
     return imread(path)[{'green': 0, 'red': 1}.get(channel, channel)::2]
 

@@ -179,7 +179,7 @@ int cmm (const unsigned short* im, unsigned char* segmented, unsigned int M, uns
     }
 
     double area[3] = {BackArea, CytArea, NucArea};
-    printf("Percent area - Background %.1f - Cytoplasm %.1f - Nucleus %.1f\n", area[0], area[1], area[2]);
+    // printf("Percent area - Background %.1f - Cytoplasm %.1f - Nucleus %.1f\n", area[0], area[1], area[2]);
 
     unsigned short im_max = *max_element(im,im+M*N);
     x = pow(2, 16) / im_max;
@@ -424,7 +424,7 @@ int cmm (const unsigned short* im, unsigned char* segmented, unsigned int M, uns
         int stop_s = clock();
 
         if (iter > 0) {
-            printf("Iterations = %d LogLikelihood = %f DiffLikelihood = %f Time = %fms\n", iter, LogLike[iter], fabs(LogLike[iter - 1] - LogLike[iter]), (stop_s-start_s)/double(CLOCKS_PER_SEC)*1000);
+            // printf("Iterations = %d LogLikelihood = %f DiffLikelihood = %f Time = %fms\n", iter, LogLike[iter], fabs(LogLike[iter - 1] - LogLike[iter]), (stop_s-start_s)/double(CLOCKS_PER_SEC)*1000);
 
             if (fabs(LogLike[iter - 1] - LogLike[iter]) < 3000) break;
         }
@@ -439,7 +439,7 @@ int cmm (const unsigned short* im, unsigned char* segmented, unsigned int M, uns
             if (Z[i][j][k] > t1) {
                 segmented[i * N + j] = k;
                 t1 = Z[i][j][k];
-//                printf("SEGMENTED %lu %lu %lu\n", i, j, k);
+                // printf("SEGMENTED %lu %lu %lu\n", i, j, k);
             }
         }
     END_ITER

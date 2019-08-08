@@ -18,7 +18,7 @@ ext_modules = [
 setup(
     name="segmentation",
     packages=["segmentation"],
-    version='0.1.2',
+    version='0.1.3',
     description='Mixture model segmentation',
     author='Matej Usaj',
     author_email='m.usaj@utoronto.ca',

@@ -1,21 +1,13 @@
+#cython: language_level=3
+
 import numpy as np
 cimport numpy as np
 from skimage.filters import gaussian
-from skimage.io import imread
 from skimage.measure import label
 
 
 cdef extern from "fastmm.cpp":
     cdef extern int cmm (const unsigned short* im, unsigned char* segmented, int m, int n, int nucNum)
-
-
-def read_channel(path, channel='red'):
-    """
-      Return ndarray of frames x shape for requested channel
-      .flex files contain one frame per channel
-      .tiff files contain four frames per channel
-    """
-    return imread(path)[{'green': 0, 'red': 1}.get(channel, channel)::2]
 
 
 def blur_frame(fr):

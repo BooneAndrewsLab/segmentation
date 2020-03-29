@@ -1,19 +1,24 @@
+import os
 import sysconfig
 
 import numpy as np
+from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 from setuptools import setup, Extension
 
-our_flags = ["-march=native", "-std=c++11", "-DNDEBUG", "-Ofast", "-Wcpp"]
+MKL = False
 
-ext_modules = [
-    Extension("segmentation.segmentation", ["segmentation/segmentation.pyx", ],
-              language="c++",
-              include_dirs=[np.get_include(), sysconfig.get_config_var('INCLUDEDIR')],
-              extra_compile_args=our_flags,
-              extra_link_args=["-std=c++11"],
-              ),
-]
+includes = [np.get_include(), sysconfig.get_config_var('INCLUDEDIR')]
+for include_path in includes:
+    if MKL:
+        break
+
+    for p, d, f in os.walk(include_path):
+        if 'mkl.h' in f:
+            MKL = True
+            break
+
+CFLAGS = ['-Ofast', '-std=c++17', '-Wcpp', '-DUSE_MKL']
 
 setup(
     name="segmentation",
@@ -25,8 +30,46 @@ setup(
     url='https://github.com/usajusaj/segmentation',
     download_url='https://github.com/usajusaj/segmentation/archive/master.zip',
     keywords=['mixture', 'model', 'segmentation'],
-    classifiers=[],
+    classifiers=[
+        'Development Status :: 3 - Beta',
+
+        'Intended Audience :: Science/Research',
+        'Topic :: Scientific/Engineering :: Bio-Informatics',
+
+        'License :: OSI Approved :: MIT License',
+
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+    ],
+    setup_requires=[
+        'cython',
+        'numpy'
+    ],
+    install_requires=[
+        'numpy',
+        'scikit-image'
+    ],
+    entry_points={
+        'console_scripts': [
+            'segment=segmentation.cli:main',
+        ],
+    },
     cmdclass={"build_ext": build_ext},
-    ext_modules=ext_modules,
-    install_requires=['cython', 'scikit-image', 'numpy'],
+    ext_modules=cythonize([
+        Extension(
+            name="segmentation.segmentation",
+            language="c++",
+            sources=[
+                "src/segmentation.pyx",
+            ],
+            include_dirs=includes,
+            extra_compile_args=CFLAGS,
+            extra_link_args=CFLAGS
+        )
+    ])
 )

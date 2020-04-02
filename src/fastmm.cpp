@@ -3,113 +3,65 @@
 #include <iostream>
 #include <cstdint>
 #include <cmath>
+#include <vector>
 #include "fmath.hpp"
 
 using namespace std;
 
-inline
-double fastgamma3(double x) {
-    double result, sum, num, denom;
-    double one = 1;
-    result = 0;
-    sum = 0;
+struct CmmConfig {
+    double learning_rate = 1e-6;
+    double var = 1e8;
+    int m_nuc_size = 210;
+    int m_cell_size = 1900;
+    char max_iterations = 100;
+    bool debug = false;
+};
 
-    if (x >= 0.01f && x <= one) {
-        double const coef1 = 6.69569585833067770821885e+6;
-        double const coef2 = 407735.985300921332020398;
-        double const coef3 = 1.29142492667105836457693e+6;
-        double const coef4 = 1.00000000000000000000000000e+00;
-        double const coef5 = 6.69558099277749024219574e+6;
-        double const coef6 = 4.27571696102861619139483e+6;
-        double const coef7 = -2.89391642413453042503323e+6;
-        double const coef8 = 317457.367152592609873458;
-
-        num = coef1 + x * (coef2 + x * (coef3));//MiniMaxApproximation calculated by Mathematica 8
-        denom = coef4 +
-                x * (coef5 + x * (coef6 + x * (coef7 + x * (coef8))));//MiniMaxApproximation calculated by Mathematica 8
-        return num / denom;
-    } else if (1. >= one && x <= 171.) {
-        double const coef_1 = 0.08333333333333333333333333;
-        double const coef_2 = 0.00347222222222222222222222;
-        double const coef_3 = -0.00268132716049382716049383;
-        double const coef_4 = -0.000229472093621399176954733;
-        double const coef_5 = 0.000784039221720066627474035;
-        double const coef_6 = 0.0000697281375836585777429399;
-        double const coef_7 = -0.000592166437353693882864836;
-        double const coef_8 = -0.0000517179090826059219337058;
-        double const coef_9 = 0.000839498720672087279993358;
-        double const coef_10 = 0.0000720489541602001055908572;
-        double ln, power, pi_sqrt, two_pi, arg;
-
-        two_pi = 2 * M_PI;
-        double invx = 1 / x;
-        ln = exp(-x);
-        arg = x - 0.5;
-
-        power = pow(x, arg);
-        pi_sqrt = sqrt(two_pi);
-
-        sum = ln * power * pi_sqrt;
-        result = one + invx * (coef_1 + invx * (coef_2 + invx * (coef_3 + invx * (coef_4 + invx * (coef_5 + invx *
-                                                                                                            (coef_6 +
-                                                                                                             invx *
-                                                                                                             (coef_7 +
-                                                                                                              invx *
-                                                                                                              (coef_8 +
-                                                                                                               invx *
-                                                                                                               (coef_9 +
-                                                                                                                invx *
-                                                                                                                (coef_10))))))))));
-    }
-
-    return sum * result;
-}
+typedef void (*cbfunc)(int step, double *x, int m, int n, int o);
 
 /**
  * Run mixture model on _im_ and save the result in _segmented_. Input size is m x n
  */
-void cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, unsigned int N, int nucNum) {
-    const unsigned char components = 3; // Number of components
-    const unsigned char component_tdist[components] = {2, 2, 1}; // t-distributions per component
-    const double var = 1e8;
-    const double learning_rate = 1e-6;
-    const int m_nuc_size = 210;
-    const int m_cell_size = 1900;
-    const std::size_t image_size = M * N;
+void
+cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, unsigned int N, int nucNum, CmmConfig config,
+    cbfunc callback) {
+    const size_t image_size = M * N;
 
     // Matrix indexers, 2D, 3D, 4D
 #define i2(i, j)       (((i) * N) + (j))
 #define i3(i, j, k)    (((k) * M * N) + ((i) * N) + (j))
 #define i4(i, j, k, l) (((k) * 2 * M * N) + ((l) * M * N) + ((i) * N) + (j))
 
-    unsigned char max_iterations = 100; // # Maximum iterations
     unsigned char iter = 0;
-    std::size_t i, j, k, m, n; // reserved iterators
-    std::size_t a, b, c, d; // box blur indexes
-    std::size_t imn, imnk, imnkj; // matrix index
+    size_t i, j, k, m, n; // reserved iterators
+    size_t a, b, c, d; // box blur indexes
+    size_t imn, imnk, imnkj; // matrix index
 
     double x, y, z, t1, t2, t3, t4;
     double B = 12;
     double Bold = 0;
 
+    const unsigned int components = 3; // Number of components
+    const unsigned int component_tdist[components] = {2, 2, 1}; // t-distributions per component
+
     double U[3][2] = {{0.,     500.},
                       {17500., 22500.},
                       {50000., 0.}}; // Initialize means
-    double S[3][2] = {{var, var},
-                      {var, var},
-                      {var, 0.}}; // Initialize variance
+    double S[3][2] = {{config.var, config.var},
+                      {config.var, config.var},
+                      {config.var, 0.}}; // Initialize variance
     double V[3][2] = {{1.,   1.},
                       {100., 100.},
                       {100., 0.}}; // Initial degree of freedom for t-distribution
     double E[3][2] = {{.5, .5},
                       {.5, .5},
                       {1., 0.}}; // Mixing proportions for t-distributions
-    double LogLike[max_iterations];
+    double LogLike[config.max_iterations];
 
     // Expected nucleus and cell area
-    double nucleus_area = 1. * nucNum * m_nuc_size / image_size;
-    double cytoplasm_area = 1. * nucNum * m_cell_size / image_size;
-    double background_area = 1. - cytoplasm_area;
+    double nucleus_area = 1. * nucNum * config.m_nuc_size / image_size;
+    double cytoplasm_area = 1. * nucNum * config.m_cell_size / image_size;
+    double background_area = 1. - cytoplasm_area - nucleus_area;
 
     if (background_area < 0.1) {
         background_area = 0.1;
@@ -127,22 +79,18 @@ void cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, uns
     unsigned short im_max = *max_element(im, im + image_size);
     x = pow(2, 16) / im_max;
 
-    std::size_t size_4d = image_size * components * 2 * sizeof(double);
-    auto *Y = (double *) malloc(size_4d);
-    auto *u = (double *) malloc(size_4d);
-    auto *StudPDFVal = (double *) malloc(size_4d);
+    vector<double> Y(image_size * components * 2);
+    vector<double> u(image_size * components * 2);
+    vector<double> StudPDFVal(image_size * components * 2);
 
-    std::size_t size_3d = image_size * components * sizeof(double);
-    auto *AveLocZ = (double *) malloc(size_3d);
-    auto *MP = (double *) malloc(size_3d);
-    auto *Z = (double *) malloc(size_3d);
+    vector<double> AveLocZ(image_size * components);
+    vector<double> MP(image_size * components);
+    vector<double> Z(image_size * components);
 
-    std::size_t size_2d = image_size * sizeof(double);
-    auto *temp = (double *) malloc(size_2d);
-    auto *sumYk = (double *) malloc(size_2d);
-    auto *sumZ = (double *) malloc(size_2d);
-    auto *sumMP = (double *) malloc(size_2d);
-    auto *im_ad = (double *) malloc(size_2d);
+    vector<double> temp(image_size);
+    vector<double> sumZ(image_size);
+    vector<double> sumMP(image_size);
+    vector<double> im_ad(image_size);
 
     for (i = 0; i < image_size; i++) {
         im_ad[i] = round(im[i] * x);
@@ -153,22 +101,23 @@ void cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, uns
             for (k = 0; k < components; k++)
                 MP[i3(i, j, k)] = area[k];
 
-    while (iter < max_iterations) {
-        int start_s = clock();
-        std::fill(sumZ, sumZ + image_size, 0);
-        std::fill(sumMP, sumMP + image_size, 0);
+    double exponent, dofcovar, c3;
+    int start_s;
+    while (iter < config.max_iterations) {
+        start_s = clock();
+        fill(sumZ.begin(), sumZ.end(), 0);
+        fill(sumMP.begin(), sumMP.end(), 0);
 
         // E-step
         for (k = 0; k < components; k++) {
             // Reset temp accumulator back to 0
-            std::fill(temp, temp + image_size, 0);
-            std::fill(sumYk, sumYk + image_size, 0);
+            fill(temp.begin(), temp.end(), 0);
 
             for (m = 0; m < component_tdist[k]; m++) {
-                double exponent = (V[k][m] + 1) / 2.;
-                double dofcovar = V[k][m] * S[k][m];
-                double c3 = (fastgamma3((V[k][m] / 2.) + 0.5) * pow(S[k][m], -0.5)) /
-                            (sqrt(V[k][m] * M_PI) * fastgamma3(V[k][m] / 2.));
+                exponent = (V[k][m] + 1) / 2.;
+                dofcovar = V[k][m] * S[k][m];
+                c3 = (fmath::fastgamma3((V[k][m] / 2.) + 0.5) * pow(S[k][m], -0.5)) /
+                     (sqrt(V[k][m] * M_PI) * fmath::fastgamma3(V[k][m] / 2.));
 
                 for (i = 0; i < M; i++) {
                     for (j = 0; j < N; j++) {
@@ -176,12 +125,13 @@ void cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, uns
                         imnk = i3(i, j, k);
                         imnkj = i4(i, j, k, m);
 
-                        StudPDFVal[imnkj] = c3 / pow(1 + pow(im_ad[imn] - U[k][m], 2) / dofcovar, exponent);
-                        temp[imn] += E[k][m] * StudPDFVal[imnkj];
+                        t1 = pow(im_ad[imn] - U[k][m], 2);
 
+                        StudPDFVal[imnkj] = c3 / pow(1 + t1 / dofcovar, exponent);
                         Y[imnkj] = E[k][m] * StudPDFVal[imnkj];
-                        u[imnkj] = (V[k][m] + 1) / (V[k][m] + pow(im_ad[imn] - U[k][m], 2) / S[k][m]);
-                        sumYk[imn] += Y[imnkj];
+                        u[imnkj] = (V[k][m] + 1) / (V[k][m] + t1 / S[k][m]);
+
+                        temp[imn] += Y[imnkj];
 
                         // run this calculation on last loop when all accumulators are full
                         if (m == component_tdist[k] - 1) {
@@ -189,7 +139,7 @@ void cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, uns
                             sumZ[imn] += Z[imnk];
 
                             for (n = 0; n < component_tdist[k]; n++) {
-                                Y[i4(i, j, k, n)] /= sumYk[imn];
+                                Y[i4(i, j, k, n)] /= temp[imn];
                             }
 
                             if (k == components - 1) {
@@ -201,6 +151,10 @@ void cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, uns
                     }
                 }
             }
+        }
+
+        if (callback != NULL) {
+            callback(iter, Z.data(), components, M, N);
         }
 
         // M-step
@@ -362,7 +316,7 @@ void cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, uns
                 }
             }
 
-            B = Bold - t4 * learning_rate;
+            B = Bold - t4 * config.learning_rate;
         }
 
         LogLike[iter] = 0;
@@ -382,30 +336,19 @@ void cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, uns
             }
         }
 
-        int stop_s = clock();
-
         if (iter > 0) {
-            printf("Iterations = %d LogLikelihood = %f DiffLikelihood = %f Time = %fms\n", iter, LogLike[iter],
-                   fabs(LogLike[iter - 1] - LogLike[iter]), (stop_s - start_s) / double(CLOCKS_PER_SEC) * 1000);
+            if (config.debug) {
+                printf("Iterations = %d LogLikelihood = %f DiffLikelihood = %f Time=%.3fms\n", iter, LogLike[iter],
+                       fabs(LogLike[iter - 1] - LogLike[iter]),
+                       (clock() - start_s) / double(CLOCKS_PER_SEC) * 1000
+                );
+            }
 
             if (fabs(LogLike[iter - 1] - LogLike[iter]) < 3000) break;
         }
 
         iter++;
     }
-
-    free(Y);
-    free(u);
-    free(StudPDFVal);
-
-    free(AveLocZ);
-    free(MP);
-
-    free(temp);
-    free(sumYk);
-    free(sumZ);
-    free(sumMP);
-    free(im_ad);
 
     for (i = 0; i < M; i++) {
         for (j = 0; j < N; j++) {
@@ -421,6 +364,4 @@ void cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, uns
             }
         }
     }
-
-    free(Z);
 }

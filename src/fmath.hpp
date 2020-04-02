@@ -873,4 +873,64 @@ inline __m128d pow_pd(__m128d x, __m128d y)
 	return exp_pd(_mm_mul_pd(y, log_pd(x)));
 }
 
+inline
+double fastgamma3(double x) {
+    double result, sum, num, denom;
+    double one = 1;
+    result = 0;
+    sum = 0;
+
+    if (x >= 0.01f && x <= one) {
+        double const coef1 = 6.69569585833067770821885e+6;
+        double const coef2 = 407735.985300921332020398;
+        double const coef3 = 1.29142492667105836457693e+6;
+        double const coef4 = 1.00000000000000000000000000e+00;
+        double const coef5 = 6.69558099277749024219574e+6;
+        double const coef6 = 4.27571696102861619139483e+6;
+        double const coef7 = -2.89391642413453042503323e+6;
+        double const coef8 = 317457.367152592609873458;
+
+        num = coef1 + x * (coef2 + x * (coef3));//MiniMaxApproximation calculated by Mathematica 8
+        denom = coef4 +
+                x * (coef5 + x * (coef6 + x * (coef7 + x * (coef8))));//MiniMaxApproximation calculated by Mathematica 8
+        return num / denom;
+    } else if (1. >= one && x <= 171.) {
+        double const coef_1 = 0.08333333333333333333333333;
+        double const coef_2 = 0.00347222222222222222222222;
+        double const coef_3 = -0.00268132716049382716049383;
+        double const coef_4 = -0.000229472093621399176954733;
+        double const coef_5 = 0.000784039221720066627474035;
+        double const coef_6 = 0.0000697281375836585777429399;
+        double const coef_7 = -0.000592166437353693882864836;
+        double const coef_8 = -0.0000517179090826059219337058;
+        double const coef_9 = 0.000839498720672087279993358;
+        double const coef_10 = 0.0000720489541602001055908572;
+        double ln, power, pi_sqrt, two_pi, arg;
+
+        two_pi = 2 * M_PI;
+        double invx = 1 / x;
+        ln = exp(-x);
+        arg = x - 0.5;
+
+        power = pow(x, arg);
+        pi_sqrt = sqrt(two_pi);
+
+        sum = ln * power * pi_sqrt;
+        result = one + invx * (coef_1 + invx * (coef_2 + invx * (coef_3 + invx * (coef_4 + invx * (coef_5 + invx *
+                                                                                                            (coef_6 +
+                                                                                                             invx *
+                                                                                                             (coef_7 +
+                                                                                                              invx *
+                                                                                                              (coef_8 +
+                                                                                                               invx *
+                                                                                                               (coef_9 +
+                                                                                                                invx *
+                                                                                                                (coef_10))))))))));
+    }
+
+    return sum * result;
+}
+
+
+
 } // fmath

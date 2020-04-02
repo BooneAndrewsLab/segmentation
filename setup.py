@@ -1,24 +1,13 @@
-import os
-import sysconfig
+from distutils import sysconfig
 
 import numpy as np
 from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 from setuptools import setup, Extension
 
-MKL = False
-
 includes = [np.get_include(), sysconfig.get_config_var('INCLUDEDIR')]
-for include_path in includes:
-    if MKL:
-        break
 
-    for p, d, f in os.walk(include_path):
-        if 'mkl.h' in f:
-            MKL = True
-            break
-
-CFLAGS = ['-Ofast', '-std=c++17', '-Wcpp', '-DUSE_MKL']
+CFLAGS = ['-Ofast']
 
 setup(
     name="segmentation",
@@ -67,6 +56,7 @@ setup(
             sources=[
                 "src/segmentation.pyx",
             ],
+            define_macros = [('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],  # suppress annoying compile warnings
             include_dirs=includes,
             extra_compile_args=CFLAGS,
             extra_link_args=CFLAGS

@@ -1,36 +1,16 @@
-#include <ctime>
-#include <algorithm>
-#include <iostream>
-#include <cstdint>
-#include <cmath>
-#include <vector>
-#include "fmath.hpp"
-
-using namespace std;
-
-struct CmmConfig {
-    double learning_rate = 1e-6;
-    double var = 1e8;
-    int m_nuc_size = 210;
-    int m_cell_size = 1900;
-    char max_iterations = 100;
-    bool debug = false;
-};
-
-typedef void (*cbfunc)(int step, double *x, int m, int n, int o);
+#include "fastmm.h"
 
 /**
  * Run mixture model on _im_ and save the result in _segmented_. Input size is m x n
  */
-void
-cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, unsigned int N, int nucNum, CmmConfig config,
-    cbfunc callback) {
-    const size_t image_size = M * N;
+void cmm(const unsigned short *im, unsigned char *segmented, unsigned int dim1, unsigned int dim2, int nuc_num,
+         CmmConfig config, cbfunc callback, void *user_data) {
+    const size_t image_size = dim1 * dim2;
 
     // Matrix indexers, 2D, 3D, 4D
-#define i2(i, j)       (((i) * N) + (j))
-#define i3(i, j, k)    (((k) * M * N) + ((i) * N) + (j))
-#define i4(i, j, k, l) (((k) * 2 * M * N) + ((l) * M * N) + ((i) * N) + (j))
+#define i2(i, j)       (((i) * dim2) + (j))
+#define i3(i, j, k)    (((k) * dim1 * dim2) + ((i) * dim2) + (j))
+#define i4(i, j, k, l) (((k) * 2 * dim1 * dim2) + ((l) * dim1 * dim2) + ((i) * dim2) + (j))
 
     unsigned char iter = 0;
     size_t i, j, k, m, n; // reserved iterators
@@ -59,8 +39,8 @@ cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, unsigned
     double LogLike[config.max_iterations];
 
     // Expected nucleus and cell area
-    double nucleus_area = 1. * nucNum * config.m_nuc_size / image_size;
-    double cytoplasm_area = 1. * nucNum * config.m_cell_size / image_size;
+    double nucleus_area = 1. * nuc_num * config.m_nuc_size / image_size;
+    double cytoplasm_area = 1. * nuc_num * config.m_cell_size / image_size;
     double background_area = 1. - cytoplasm_area - nucleus_area;
 
     if (background_area < 0.1) {
@@ -96,8 +76,8 @@ cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, unsigned
         im_ad[i] = round(im[i] * x);
     }
 
-    for (i = 0; i < M; i++)
-        for (j = 0; j < N; j++)
+    for (i = 0; i < dim1; i++)
+        for (j = 0; j < dim2; j++)
             for (k = 0; k < components; k++)
                 MP[i3(i, j, k)] = area[k];
 
@@ -119,8 +99,8 @@ cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, unsigned
                 c3 = (fmath::fastgamma3((V[k][m] / 2.) + 0.5) * pow(S[k][m], -0.5)) /
                      (sqrt(V[k][m] * M_PI) * fmath::fastgamma3(V[k][m] / 2.));
 
-                for (i = 0; i < M; i++) {
-                    for (j = 0; j < N; j++) {
+                for (i = 0; i < dim1; i++) {
+                    for (j = 0; j < dim2; j++) {
                         imn = i2(i, j);
                         imnk = i3(i, j, k);
                         imnkj = i4(i, j, k, m);
@@ -154,7 +134,7 @@ cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, unsigned
         }
 
         if (callback != NULL) {
-            callback(iter, Z.data(), components, M, N);
+            callback(iter, Z.data(), components, dim1, dim2, user_data);
         }
 
         // M-step
@@ -165,8 +145,8 @@ cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, unsigned
                 t1 = 0;
                 t2 = 0;
 
-                for (i = 0; i < M; i++) {
-                    for (j = 0; j < N; j++) {
+                for (i = 0; i < dim1; i++) {
+                    for (j = 0; j < dim2; j++) {
                         imn = i2(i, j);
                         imnk = i3(i, j, k);
                         imnkj = i4(i, j, k, m);
@@ -203,8 +183,8 @@ cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, unsigned
             }
 
             // image blurring submatrix sum rows
-            for (i = 0; i < M; i++) {
-                for (j = 0; j < N; j++) {
+            for (i = 0; i < dim1; i++) {
+                for (j = 0; j < dim2; j++) {
                     if (j > 0) {
                         temp[i2(i, j)] += temp[i2(i, j - 1)];
                     }
@@ -212,8 +192,8 @@ cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, unsigned
             }
 
             // Blurring using submatrix sum
-            for (i = 0; i < M; i++) {
-                for (j = 0; j < N; j++) {
+            for (i = 0; i < dim1; i++) {
+                for (j = 0; j < dim2; j++) {
                     imn = i2(i, j);
                     imnk = i3(i, j, k);
 
@@ -222,10 +202,10 @@ cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, unsigned
                     c = j - 3;
                     d = j + 3;
 
-                    a = a > M ? 0 : a; // Remember, it's an unsigned int -- tli
-                    b = b >= M ? M - 1 : b; // rbi
-                    c = c > N ? 0 : c; // tlj
-                    d = d >= N ? N - 1 : d; // rbj
+                    a = a > dim1 ? 0 : a; // Remember, it's an unsigned int -- tli
+                    b = b >= dim1 ? dim1 - 1 : b; // rbi
+                    c = c > dim2 ? 0 : c; // tlj
+                    d = d >= dim2 ? dim2 - 1 : d; // rbj
 
                     AveLocZ[imnk] = temp[i2(b, d)];
                     if (a > 0) AveLocZ[imnk] -= temp[i2(a - 1, d)];
@@ -240,8 +220,8 @@ cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, unsigned
         }
 
         for (k = 0; k < components; k++) {
-            for (i = 0; i < M; i++) {
-                for (j = 0; j < N; j++) {
+            for (i = 0; i < dim1; i++) {
+                for (j = 0; j < dim2; j++) {
                     MP[i3(i, j, k)] /= sumMP[i2(i, j)];
                 }
             }
@@ -251,8 +231,8 @@ cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, unsigned
                     t1 = 0;
                     t2 = 0;
 
-                    for (i = 0; i < M; i++) {
-                        for (j = 0; j < N; j++) {
+                    for (i = 0; i < dim1; i++) {
+                        for (j = 0; j < dim2; j++) {
                             imn = i2(i, j);
                             imnk = i3(i, j, k);
                             imnkj = i4(i, j, k, m);
@@ -292,8 +272,8 @@ cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, unsigned
             Bold = B;
             t4 = 0;
 
-            for (i = 0; i < M; i++) {
-                for (j = 0; j < N; j++) {
+            for (i = 0; i < dim1; i++) {
+                for (j = 0; j < dim2; j++) {
                     t1 = 0;
                     t2 = 0;
 
@@ -320,8 +300,8 @@ cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, unsigned
         }
 
         LogLike[iter] = 0;
-        for (i = 0; i < M; i++) {
-            for (j = 0; j < N; j++) {
+        for (i = 0; i < dim1; i++) {
+            for (j = 0; j < dim2; j++) {
                 t1 = 0;
                 for (k = 0; k < components; k++) {
                     t2 = 0;
@@ -350,8 +330,8 @@ cmm(const unsigned short *im, unsigned char *segmented, unsigned int M, unsigned
         iter++;
     }
 
-    for (i = 0; i < M; i++) {
-        for (j = 0; j < N; j++) {
+    for (i = 0; i < dim1; i++) {
+        for (j = 0; j < dim2; j++) {
             imn = i2(i, j);
             segmented[imn] = 0;
             t1 = Z[i3(i, j, 0)];

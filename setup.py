@@ -1,3 +1,4 @@
+import os
 from distutils import sysconfig
 
 import numpy as np
@@ -5,7 +6,9 @@ from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 from setuptools import setup, Extension
 
-includes = [np.get_include(), sysconfig.get_config_var('INCLUDEDIR')]
+ROOT = os.path.dirname(os.path.abspath(__file__))
+
+includes = [np.get_include(), sysconfig.get_config_var('INCLUDEDIR'), os.path.join(ROOT, 'src')]
 
 CFLAGS = ['-Ofast']
 
@@ -55,6 +58,7 @@ setup(
             language="c++",
             sources=[
                 "src/segmentation.pyx",
+                "src/fastmm.cpp",
             ],
             define_macros = [('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],  # suppress annoying compile warnings
             include_dirs=includes,

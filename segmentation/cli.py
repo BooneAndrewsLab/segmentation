@@ -19,7 +19,7 @@ def main():
         image = imread(args.image, plugin='tifffile')[1]
 
     image = segmentation.blur_frame(image)
-    segmented, _ = segmentation.mixture_model(image)
+    segmented, _ = segmentation.mixture_model(image, debug=True)
 
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')  # ignore "tiff is a low contrast image"

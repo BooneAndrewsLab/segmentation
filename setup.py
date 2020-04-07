@@ -74,7 +74,7 @@ setup(
             name="segmentation.segmentation",
             language="c++",
             sources=[
-                "src/segmentation.pyx",
+                "segmentation/segmentation.pyx",
                 "src/fastmm.cpp",
             ],
             define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],  # suppress annoying compile warnings

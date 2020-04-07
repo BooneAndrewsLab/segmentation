@@ -1,4 +1,4 @@
-from .segmentation import label
+from skimage.measure import label
 from skimage.morphology import closing, square
 from skimage.segmentation import watershed as skwatershed
 

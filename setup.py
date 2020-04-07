@@ -1,4 +1,6 @@
+import io
 import os
+import sys
 from distutils import sysconfig
 
 import numpy as np
@@ -6,7 +8,19 @@ from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 from setuptools import setup, Extension
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(__file__)
+
+
+def get_version():
+    # Borrowed this method from pysam
+    sys.path.insert(0, "segmentation")
+    # noinspection PyUnresolvedReferences,PyPackageRequirements
+    import version
+    return version.__version__
+
+
+with io.open(os.path.join(ROOT, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 includes = [np.get_include(), sysconfig.get_config_var('INCLUDEDIR'), os.path.join(ROOT, 'src')]
 
@@ -15,8 +29,10 @@ CFLAGS = ['-Ofast']
 setup(
     name="segmentation",
     packages=["segmentation"],
-    version='0.1.3',
+    version=get_version(),
     description='Mixture model segmentation',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     author='Matej Usaj',
     author_email='m.usaj@utoronto.ca',
     url='https://github.com/usajusaj/segmentation',
@@ -44,6 +60,7 @@ setup(
     ],
     install_requires=[
         'numpy',
+        'scipy',
         'scikit-image'
     ],
     entry_points={
@@ -60,7 +77,7 @@ setup(
                 "src/segmentation.pyx",
                 "src/fastmm.cpp",
             ],
-            define_macros = [('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],  # suppress annoying compile warnings
+            define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],  # suppress annoying compile warnings
             include_dirs=includes,
             extra_compile_args=CFLAGS,
             extra_link_args=CFLAGS

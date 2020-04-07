@@ -2,7 +2,7 @@ import logging
 import warnings
 
 from numpy import memmap
-from skimage.io import imread, imsave
+from skimage.io import imread
 
 from segmentation import segmentation
 from segmentation.watershed import watershed

@@ -5,5 +5,3 @@ dependencies:
   - gcc_linux-64
   - numpy
   - scikit-image
-  - boost
-  - conda-forge::mahotas

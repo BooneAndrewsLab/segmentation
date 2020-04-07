@@ -1,11 +1,5 @@
-# Include the README
-include *.md
-
-# Include the license file
+graft src
+include requirements.txt
+include environment.yml
 include LICENSE
-
-# Include the data files
-recursive-include data *
-
-include segmentation/*cpp
-include segmentation/*hpp
+include README.md

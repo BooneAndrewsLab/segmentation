@@ -1,3 +1,5 @@
+![Python package](https://github.com/BooneAndrewsLab/segmentation/workflows/Python%20package/badge.svg)
+
 # Fast Mixture Model Segmentation
 
 Fast mixture model segmentation used in Boone and Andrews labs

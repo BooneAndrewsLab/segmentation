@@ -1,4 +1,5 @@
 graft src
+graft tests
 include requirements.txt
 include environment.yml
 include LICENSE

@@ -4,8 +4,8 @@ import warnings
 from numpy import memmap
 from skimage.io import imread
 
-from segmentation import segmentation
-from segmentation.watershed import watershed
+from . import segmentation
+from .watershed import watershed
 
 log = logging.getLogger(__file__)
 log.setLevel(logging.ERROR)

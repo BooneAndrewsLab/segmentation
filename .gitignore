@@ -111,4 +111,4 @@ venv.bak/
 .idea/
 
 # cython specific
-src/segmentation.cpp
+segmentation/segmentation.cpp

@@ -6,3 +6,4 @@ dependencies:
   - numpy
   - scikit-image
   - boost
+  - conda-forge::mahotas

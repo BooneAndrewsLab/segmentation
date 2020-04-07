@@ -1,3 +1,5 @@
 cython
 scikit-image
 numpy
+mahotas
+scipy

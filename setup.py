@@ -39,7 +39,7 @@ setup(
     download_url='https://github.com/usajusaj/segmentation/archive/master.zip',
     keywords=['mixture', 'model', 'segmentation'],
     classifiers=[
-        'Development Status :: 3 - Beta',
+        'Development Status :: 5 - Production/Stable',
 
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering :: Bio-Informatics',

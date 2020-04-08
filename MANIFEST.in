@@ -1,5 +1,6 @@
 graft src
-graft tests
+global-include *.pyx
+recursive-include tests *.py
 include requirements.txt
 include environment.yml
 include LICENSE

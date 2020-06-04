@@ -8,6 +8,15 @@
 
 using namespace std;
 
+/*
+ *  Adapted from https://stackoverflow.com/a/7455490
+ *  cmath::isnan has problems with -Ofast
+ */
+static inline int safeisnan(float f) {
+    union { float f; uint32_t x; } u = { f };
+    return (u.x << 1) > 0xff000000u;
+}
+
 typedef void (*cbfunc)(int step, double *x, int m, int n, int o, void *user_data);
 
 struct CmmConfig {

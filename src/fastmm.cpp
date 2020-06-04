@@ -57,6 +57,9 @@ void cmm(const unsigned short *im, unsigned char *segmented, unsigned int dim1, 
     double area[3] = {background_area, cytoplasm_area, nucleus_area};
 
     unsigned short im_max = *max_element(im, im + image_size);
+    if (im_max == 0) {  // Possibility of completely empty images, produces nan, messes up the rest of math
+        im_max = 1;
+    }
     x = pow(2, 16) / im_max;
 
     vector<double> Y(image_size * components * 2);
@@ -324,7 +327,8 @@ void cmm(const unsigned short *im, unsigned char *segmented, unsigned int dim1, 
                 );
             }
 
-            if (fabs(LogLike[iter - 1] - LogLike[iter]) < 3000) break;
+            if (fabs(LogLike[iter - 1] - LogLike[iter]) < 3000) break;  // Segmentation complete
+            if (safeisnan(LogLike[iter])) break;  // Segmentation problem, bail
         }
 
         iter++;

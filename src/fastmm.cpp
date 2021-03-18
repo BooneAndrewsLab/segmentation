@@ -99,8 +99,8 @@ void cmm(const unsigned short *im, unsigned char *segmented, unsigned int dim1, 
             for (m = 0; m < component_tdist[k]; m++) {
                 exponent = (V[k][m] + 1) / 2.;
                 dofcovar = V[k][m] * S[k][m];
-                c3 = (fmath::fastgamma3((V[k][m] / 2.) + 0.5) * pow(S[k][m], -0.5)) /
-                     (sqrt(V[k][m] * M_PI) * fmath::fastgamma3(V[k][m] / 2.));
+                c3 = (mm_gamma((V[k][m] / 2.) + 0.5) * pow(S[k][m], -0.5)) /
+                     (sqrt(V[k][m] * M_PI) * mm_gamma(V[k][m] / 2.));
 
                 for (i = 0; i < dim1; i++) {
                     for (j = 0; j < dim2; j++) {
@@ -216,7 +216,7 @@ void cmm(const unsigned short *im, unsigned char *segmented, unsigned int dim1, 
                     if (a > 0 && c > 0) AveLocZ[imnk] += temp[i2(a - 1, c - 1)];
 
                     AveLocZ[imnk] /= 49;
-                    MP[imnk] = fmath::expd(B * AveLocZ[imnk]);
+                    MP[imnk] = mm_exp(B * AveLocZ[imnk]);
                     sumMP[imn] += MP[imnk];
                 }
             }
@@ -282,7 +282,7 @@ void cmm(const unsigned short *im, unsigned char *segmented, unsigned int dim1, 
 
                     for (k = 0; k < components; k++) {
                         imnk = i3(i, j, k);
-                        t3 = fmath::expd(B * AveLocZ[imnk]);
+                        t3 = mm_exp(B * AveLocZ[imnk]);
                         t1 += t3 * AveLocZ[imnk];
                         t2 += t3;
                     }

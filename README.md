@@ -1,5 +1,5 @@
 ![Python package](https://github.com/BooneAndrewsLab/segmentation/workflows/Python%20package/badge.svg)
-
+![Python package](https://github.com/BooneAndrewsLab/segmentation/workflows/Python%20package%20build%20and%20publish/badge.svg)
 # Fast Mixture Model Segmentation
 
 Fast mixture model segmentation used in Boone and Andrews labs
@@ -31,13 +31,27 @@ $ pip install segmentation
 ```
 
 ## Usage example
-
+### Programmatically:
 ```python
-import segmentation as seg
+from segmentation import segmentation
+from segmentation import watershed
 from skimage.io import imread
 
-image = imread('./001001000.tiff', plugin='tifffile')[1]  # Read channel 1 of a tiff/flex 
-im = seg.blur_frame(image) # gaussian blur
-segmented, _ = seg.mixture_model(im, debug=True) # second return argument is currently unused
-labels = seg.watershed(im, segmented)
+image = imread('./image.tiff', plugin='tifffile')[1]  # Read channel 1 of a tiff/flex 
+im = segmentation.blur_frame(image) # gaussian blur
+segmented, _ = segmentation.mixture_model(im, debug=True) # second return argument is currently unused
+labels = watershed(im, segmented)
+```
+
+### Command line
+```sh
+$ segment -h # for usage information
+
+$ segment -o segmented.data image.tiff
+```
+
+Output is a memmaped labels array. You can read it like this:
+```python
+from numpy import memmap
+labels = memmap('segmented.data', dtype='int32', shape=(1010, 1346))  # shape is same as input image
 ```

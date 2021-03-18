@@ -6,12 +6,12 @@
 #include <vector>
 
 #ifdef __x86_64__
-	#include "fmath.hpp"
-	#define mm_gamma(x) fmath::fastgamma3(x)
-	#define mm_exp(x) fmath::expd(x)
+    #include "fmath.hpp"
+    #define mm_gamma(x) fmath::fastgamma3(x)
+    #define mm_exp(x) fmath::expd(x)
 #else
-	#define mm_gamma(x) tgamma(x)
-	#define mm_exp(x) exp(x)
+    #define mm_gamma(x) tgamma(x)
+    #define mm_exp(x) exp(x)
 #endif
 
 using namespace std;
